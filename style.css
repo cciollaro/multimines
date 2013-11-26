@@ -1,0 +1,16 @@
+#main
+{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -160px;
+    margin-left: -160px;
+    border: 1px dotted black;
+}
+
+body
+{
+    background-color: #eeeeee;
+    font-family: Helvetica, Arial, sans-serif;
+    text-align: center;
+}

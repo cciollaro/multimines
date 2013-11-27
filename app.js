@@ -31,12 +31,18 @@ server.listen(app.get('port'), function(){
 });
 
 var boards = [];
+var sockets = [];
+var first_click = true;
+var players = 0;
 
-function floodfill(user, x, y){
-	var board = (user==0 ? boards[0] : boards[1]);
+
+//player is 0 or 1
+function floodfill(player, x, y){
+	var board = boards[player]; 
 	var n = board.length;
 	if(board[x][y].surrounding > 0){
-		board[x][y].flipped = true; //and tell clients to do it
+		board[x][y].flipped = true;
+		
 	} else if(board[x][y] == 0){
 		board[x][y].flipped = true; //and tell clients to do it
 		
@@ -49,18 +55,43 @@ function floodfill(user, x, y){
 				}
 			}
 		}
-		
 	}
+	return moves;
 }
 
+
 io.sockets.on('connection', function(socket){
-	socket.player = //0 or 1
+	socket.player = players;
+	players++;
+	sockets.puch(socket);
+	
 	socket.on('click', function(data){
-		var id = 0; //get this dynamically though.
 		if(data.action == 'flip'){
-              console.log("got click");
+			if(first_click){
+				var c = board_stuff.newBoard(data.x, data.y, 35, 15);
+				boards[0] = JSON.parse(c);
+				boards[1] = JSON.parse(c);
+				first_click = false;
+			}
+			
+			if(board[data.x][data.y].mine){
+				var mySignal = {board: 0, x: data.x, y: data.y, display: -2};
+				var yourSignal = {board: 1, x: data.x, y: data.y, display: 10};
+				if(player == 0){
+					sockets[0].emit('updateBoard', mySignal);
+					sockets[1].emit('updateBoard', yourSignal);
+				} else {
+					sockets[0].emit('updateBoard', yourSignal);
+					sockets[1].emit('updateBoard', mySignal);					
+				}
+				
+			} else if(board[data.x][data.y].flag) {
+				//do nothing?
+			} else {
+				//
+			}
 		} else if(data.action == 'flag'){
-              console.log("got flag");
+			//flip flag attribute. tell both players to flip flag attribute
 			//tell both players that the player flagged that one
 		}
 	});

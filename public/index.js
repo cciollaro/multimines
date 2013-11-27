@@ -236,12 +236,12 @@ function processMove(response)
     else
         target = document.getElementById("main2");
     
-    if (response.action == 'flip' && !target.contents.active[response.x][response.y].flipped)
+    if (response.value >= 0 && response.value <= 8 && !target.contents.active[response.x][response.y].flipped)
     {
         target.contents.active[response.x][response.y].flipped = true;
         target.contents.active[response.x][response.y].value = response.display;
     }
-    else (response.action == 'flag' && !target.contents.active[response.x][response.y].flipped)
+    else (!target.contents.active[response.x][response.y].flipped)
     {
         target.contents.active[response.x][response.y].flagged = true;
         target.contents.active[response.x][response.y].value = response.display;

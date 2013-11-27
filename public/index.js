@@ -4,6 +4,8 @@ var lastX = -1;
 var lastY = -1;
 var dragging = false;
 var socket;
+var notTicking = true;
+var timer = 0;
 
 var cellWidth = 20;
 
@@ -28,6 +30,13 @@ function makeInitial()
             
    return matrix;
 
+}
+
+function updateTimer()
+{
+    document.getElementById("timer").innerHTML = ++timer;
+    if (!notTicking)
+        setTimeout(updateTimer(), 1000);
 }
 
 function drawSquares()
@@ -171,6 +180,10 @@ function main()
     
     socket.on('updateBoard', function (data) {
               console.log("got update board");
+              if (notTicking)
+              {
+                setTimeout(updateTimer(), 1000);
+              }
               for (var x=0; x<data.length; x++)
                 processMove(data[x]);
               });
@@ -243,7 +256,7 @@ function processMove(response)
     }
     else (!target.contents.active[response.x][response.y].flipped)
     {
-        target.contents.active[response.x][response.y].flagged = true;
+        target.contents.active[response.x][response.y].flagged = (response.display==11)? false : true;
         target.contents.active[response.x][response.y].value = response.display;
     }
     

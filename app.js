@@ -105,7 +105,7 @@ io.sockets.on('connection', function(socket){
 			console.log('hfdshkagj');
 			
 			socket.emit('updateBoard', mySignal);
-			//socket.broadcast.emit('updateBoard', yourSignal);
+			socket.broadcast.emit('updateBoard', yourSignal);
 		}
 	});
 });

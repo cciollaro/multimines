@@ -149,6 +149,9 @@ function drawSquares()
     
     if (lastX >0 && lastY >0)
     {
+        g.fillStyle = "#c1c1c1";
+        g.fillRect((lastX-1)*cellWidth,(lastY-1)*cellWidth,cellWidth,cellWidth); // x, y, width, height
+
 //        g.font="25px Arial";
 //        g.fillText("("+lastX+", "+lastY+")", 10, 265)
     }
@@ -205,18 +208,56 @@ function main()
               }
               for (var x=0; x<data.length; x++)
               {
-              (function(s){setTimeout(function(){processMove(s);}, 10);})(data[x]);
+              (function(s){setTimeout(function(){processMove(s);}, 1);})(data[x]);
               }
               });
 
     
     $('#main').mouseup(fireClick);
+    $('#main').mousedown(depressClick);
+    $('#main').mousemove(moveClick);
+
+
     
 }
 
 function clear(g)
 {
     g.clearRect(0, 0, main.width, main.height);
+}
+
+function moveClick(event)
+{
+    
+    if (lastX>0 || lastY>0)
+    {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        
+        lastX = Math.ceil(x/cellWidth);
+        lastY = Math.ceil(y/cellWidth);
+        
+        main.repaint();
+    }
+}
+
+function depressClick(event)
+{
+    var x = event.offsetX;
+    var y = event.offsetY;
+    
+    x = Math.ceil(x/cellWidth);
+    y = Math.ceil(y/cellWidth);
+    
+    if (event.which == 1)
+    {
+        lastX = x;
+        lastY = y;
+        
+        main.repaint();
+        
+    }
+
 }
 
 function fireClick(event)
@@ -245,8 +286,11 @@ function fireClick(event)
 
     }
     
-    lastX = x;
-    lastY = y;
+    lastX = -1;
+    lastY = -1;
+    
+//    lastX = x;
+//    lastY = y;
     main.repaint();
 }
 

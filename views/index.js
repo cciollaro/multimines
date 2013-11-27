@@ -4,17 +4,22 @@ var lastX = -1;
 var lastY = -1;
 var dragging = false;
 
+var cellWidth = 20;
+
 var arr1 = makeInitial();
 var arr2 = makeInitial();
             
 function makeInitial()
 {
     var matrix = [];
-        for(var i=0; i<10; i++) {
-            matrix[i] = new Array(9);
-            for (var j=0; j<10; j++)
+        for(var i=0; i<15; i++) {
+            matrix[i] = new Array(15);
+            for (var j=0; j<15; j++)
             {
-                matrix[i][j] = false;
+                matrix[i][j] = {};
+                matrix[i][j].flagged = false;
+                matrix[i][j].flipped = false;
+                matrix[i][j].value = 0;
             }
     }
             
@@ -27,7 +32,6 @@ function drawSquares()
     var g = this.getContext("2d");
     clear(g);
     
-    //  gradientify(g);     // uncomment for fun!
     
     for (var x=0; x<this.contents.active.length; x++)
     {
@@ -38,12 +42,59 @@ function drawSquares()
             else if (this.contents.active[x][y] == 1)
                 g.fillStyle="red";
             else
-                g.fillStyle="green";
+                g.fillStyle="yellow";
             
-            g.fillRect(x*30,y*30,30,30); // x, y, width, height
+            
+            g.fillStyle   = '#fff';
+            g.beginPath();
+            g.moveTo(x*cellWidth, y*cellWidth); // give the (x,y) coordinates
+            g.lineTo(x*cellWidth+cellWidth, y*cellWidth);
+            g.lineTo(x*cellWidth, y*cellWidth+cellWidth);
+            g.lineTo(x*cellWidth, y*cellWidth);
+            g.fill();
+            g.closePath();
+            
+            g.fillStyle   = '#808080';
+            g.beginPath();
+            g.moveTo(x*cellWidth+cellWidth, y*cellWidth+cellWidth); // give the (x,y) coordinates
+            g.lineTo(x*cellWidth+cellWidth, y*cellWidth);
+            g.lineTo(x*cellWidth, y*cellWidth+cellWidth);
+            g.lineTo(x*cellWidth+cellWidth, y*cellWidth+cellWidth);
+            g.fill();
+            g.closePath();
+            
+            g.fillStyle = '#c1c1c1';
+            g.fillRect(x*cellWidth+2,y*cellWidth+2,cellWidth-4,cellWidth-4); // x, y, width, height
+            
+            if (this.contents.active[x][y].flipped == true)
+            {
+                g.fillStyle = "#c1c1c1";
+                g.fillRect(x*cellWidth,y*cellWidth,cellWidth,cellWidth); // x, y, width, height
+            }
+            else if (this.contents.active[x][y].flagged == true)
+            {
+                g.fillStyle = "red";
+                g.beginPath();
+                g.moveTo(x*cellWidth+11, y*cellWidth+3); // give the (x,y) coordinates
+                g.lineTo(x*cellWidth+3, y*cellWidth+8);
+                g.lineTo(x*cellWidth+11, y*cellWidth+11);
+                g.lineTo(x*cellWidth+11, y*cellWidth+2);
+                g.fill();
+                g.closePath();
+                
+                g.beginPath();
+                g.moveTo(x*cellWidth+12,y*cellWidth+3);
+                g.lineTo(x*cellWidth+12,y*cellWidth+15);
+                g.stroke();
+                g.closePath();
+
+            }
+
+            
+//            g.fillRect(x*cellWidth,y*cellWidth,cellWidth,cellWidth); // x, y, width, height
             
             g.fillStyle="white";
-            g.font="30px Arial";
+            g.font="cellWidthpx Arial";
             
             var off = 7;
 //            
@@ -53,21 +104,24 @@ function drawSquares()
 //                off = 0;
 //            }
             
-//            g.fillText(this.contents.values[x], x*30+off, x*30+25)
+//            g.fillText(this.contents.values[x], x*cellWidth+off, x*cellWidth+25)
         }
     }
     
     g.fillStyle="black";
     g.font="20px Arial";
-    g.fillText("we love javascript", 135, 20)
+//    g.fillText("we love javascript", 135, 20)
     g.font="15px Arial";
-    g.fillText("click a square to mark active", 10, 290)
+//    g.fillText("click a square to mark active", 10, 290)
     
     if (lastX >0 && lastY >0)
     {
         g.font="25px Arial";
-        g.fillText("("+lastX+", "+lastY+")", 10, 265)
+//        g.fillText("("+lastX+", "+lastY+")", 10, 265)
     }
+    
+     // gradientify(g);     // uncomment for fun!
+
     
 }
 
@@ -86,7 +140,7 @@ function main()
     main.contents = {};
     main2.contents = {};
 
-    $('body').on('contextmenu', '#main', function(e){ fireClick(e);return false; });
+    $('body').on('contextmenu', '#main', function(e){ return false; });
 
     
     main.contents.values = values;
@@ -115,17 +169,17 @@ function fireClick(event)
     var x = event.offsetX;
     var y = event.offsetY;
     
-    x = Math.ceil(x/30);
-    y = Math.ceil(y/30);
+    x = Math.ceil(x/cellWidth);
+    y = Math.ceil(y/cellWidth);
     
     if (event.which == 1)
     {
-        main.contents.active[x-1][y-1] = 1;
+        main.contents.active[x-1][y-1].flipped = true;
         //send flip at x-1, y-1
     }
     else if (event.which == 3)
     {
-        main.contents.active[x-1][y-1] = 2;
+        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
         //send flag at x-1, y-1
     }
     
@@ -145,4 +199,27 @@ function gradientify(g)
     
     g.fillStyle = grd;
     g.fill();
+}
+
+function processMove(response)
+{
+    var target;
+    
+    if (response.board == 0)
+        target = document.getElementById("main");
+    else
+        target = document.getElementById("main2");
+    
+    if (response.action == 'flip')
+    {
+        target.contents.active[response.x][response.y].flipped = true;
+    }
+    else (response.action == 'flag')
+    {
+        target.contents.active[response.x][response.y].flagged = true;
+    }
+    
+    target.repaint();
+    
+    
 }

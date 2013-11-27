@@ -210,11 +210,11 @@ function processMove(response)
     else
         target = document.getElementById("main2");
     
-    if (response.action == 'flip')
+    if (response.action == 'flip' && !target.contents.active[response.x][response.y].flipped)
     {
         target.contents.active[response.x][response.y].flipped = true;
     }
-    else (response.action == 'flag')
+    else (response.action == 'flag' && !target.contents.active[response.x][response.y].flipped)
     {
         target.contents.active[response.x][response.y].flagged = true;
     }

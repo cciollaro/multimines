@@ -6,6 +6,7 @@ var dragging = false;
 var socket;
 var notTicking = true;
 var timer = 0;
+var noMoving = 0;
 
 var cellWidth = 20;
 
@@ -35,8 +36,19 @@ function makeInitial()
 function updateTimer()
 {
     document.getElementById("timer").innerHTML = ++timer;
+    console.log(noMoving);
+    if (noMoving > 0)
+    {
+        noMoving--;
+    }
+    if (noMoving == 1)
+    {
+        noMoving = 0;
+        main.repaint();
+    }
+    
     if (!notTicking)
-        setTimeout(updateTimer(), 1000);
+        setTimeout(updateTimer, 1000);
 }
 
 function drawSquares()
@@ -141,6 +153,12 @@ function drawSquares()
 //        g.fillText("("+lastX+", "+lastY+")", 10, 265)
     }
     
+    if (noMoving > 0)
+    {
+        g.fillStyle = 'rgba(255, 0, 0, .2)'
+        g.fillRect(0,0,300,300); // x, y, width, height
+    }
+    
      // gradientify(g);     // uncomment for fun!
 
     
@@ -182,7 +200,8 @@ function main()
               console.log("got update board");
               if (notTicking)
               {
-                setTimeout(updateTimer(), 1000);
+                notTicking = false;
+                setTimeout(updateTimer, 1000);
               }
               for (var x=0; x<data.length; x++)
                 processMove(data[x]);
@@ -211,14 +230,16 @@ function fireClick(event)
        // main.contents.active[x-1][y-1].flipped = true;
 //        main.contents.active[x-1][y-1].value = parseInt(Math.random()*8)+1;
         //send flip at x-1, y-1
-        socket.emit('click', { action: 'flip', x: x-1, y: y-1});
+        if (noMoving <= 0)
+            socket.emit('click', { action: 'flip', x: x-1, y: y-1});
 
     }
     else if (event.which == 3)
     {
 //        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
         //send flag at x-1, y-1
-        socket.emit('click', { action: 'flag', x: x-1, y: y-1});
+        if (noMoving <= 0)
+            socket.emit('click', { action: 'flag', x: x-1, y: y-1});
 
     }
     
@@ -249,10 +270,15 @@ function processMove(response)
     else
         target = document.getElementById("main2");
     
-    if (response.value >= 0 && response.value <= 8 && !target.contents.active[response.x][response.y].flipped)
+    if (response.display <= 8 && !target.contents.active[response.x][response.y].flipped)
     {
         target.contents.active[response.x][response.y].flipped = true;
         target.contents.active[response.x][response.y].value = response.display;
+        
+        if (response.display<0 && response.board==0)
+        {
+            noMoving = 5;
+        }
     }
     else (!target.contents.active[response.x][response.y].flipped)
     {

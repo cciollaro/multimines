@@ -40,23 +40,35 @@ var players = 0;
 function floodfill(player, x, y, moves){
 	var board = boards[player]; 
 	var n = board.length;
-	if(board[x][y].surrounding > 0){
+	var surrounding = 0;
+	
+	var dirs = [-1, 0, 1];
+	for(var i = 0; i < 3; i++){
+		for(var j = 0; j < 3; j++){
+			if(i == 1 && j == 1) continue; //don't do the same one again.
+			if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n){
+				if(board[x+dirs[i]][y+dirs[j]].mine) surrounding++;
+			}
+		}
+	}
+	
+	if(surrounding > 0){
+		moves.push({x: x, y: y, display: surrounding}); //might need to be a front push.
+	} else if(surrounding == 0) {
 		board[x][y].flipped = true;
+		moves.push({x: x, y: y, display: 0});
 		
-	} else if(board[x][y] == 0) {
-		board[x][y].flipped = true; //and tell clients to do it
-		
-		var dirs = [-1, 0, 1];
 		for(var i = 0; i < 3; i++){
 			for(var j = 0; j < 3; j++){
 				if(i == 1 && j == 1) continue; //don't do the same one again.
-				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n){
-					floodfill(x+dirs[i], y+dirs[j]);
+				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n && !board[x+dirs[i]][y+dirs[i]].flipped){
+					board[x+dirs[i]][y+dirs[j]].flipped = true;
+					floodfill(player, x+dirs[i], y+dirs[j], moves);
 				}
 			}
 		}
 	}
-	return moves;
+	return JSON.stringify(moves);
 }
 
 
@@ -85,7 +97,21 @@ io.sockets.on('connection', function(socket){
 			} else if(board[data.x][data.y].flag) {
 				//do nothing?
 			} else {
-				//
+				//moves needs to be an array of update objects. {x,y,action}, in string form.
+				board[data.x][data.y].flipped = true;
+				var moves = floodfill(socket.player, data.x, data.y, []);
+				var mySignal = JSON.parse(moves);
+				var yourSignal = JSON.parse(moves);
+				for(var i = 0; i < mySignal.length; i++){
+					mySignal[i].board = 0;
+				}
+				
+				for(var i = 0; i < yourSignal.length; i++){
+					yourSignal[i].board = 1;
+				}
+				
+				socket.emit('updateBoard', mySignal);
+				socket.broadcast.emit('updateBoard', yourSignal);
 			}
 		} else if(data.action == 'flag'){			
 			console.log('I got flag');

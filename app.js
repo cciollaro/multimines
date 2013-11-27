@@ -61,7 +61,7 @@ function floodfill(player, x, y, moves){
 		for(var i = 0; i < 3; i++){
 			for(var j = 0; j < 3; j++){
 				if(i == 1 && j == 1) continue; //don't do the same one again.
-				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n && !board[x+dirs[i]][y+dirs[i]].flipped){
+				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n && !board[x+dirs[i]][y+dirs[j]].flipped){
 					board[x+dirs[i]][y+dirs[j]].flipped = true;
 					floodfill(player, x+dirs[i], y+dirs[j], moves);
 				}

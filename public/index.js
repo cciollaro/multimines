@@ -204,7 +204,9 @@ function main()
                 setTimeout(updateTimer, 1000);
               }
               for (var x=0; x<data.length; x++)
-                processMove(data[x]);
+              {
+              (function(s){setTimeout(function(){processMove(s);}, 10);})(data[x]);
+              }
               });
 
     

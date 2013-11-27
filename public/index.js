@@ -280,7 +280,7 @@ function processMove(response)
             noMoving = 5;
         }
     }
-    else (!target.contents.active[response.x][response.y].flipped)
+    else (!target.contents.active[response.x][response.y].flipped && response.display>=9)
     {
         target.contents.active[response.x][response.y].flagged = (response.display==11)? false : true;
         target.contents.active[response.x][response.y].value = response.display;

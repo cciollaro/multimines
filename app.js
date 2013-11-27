@@ -31,7 +31,6 @@ server.listen(app.get('port'), function(){
 });
 
 var boards = [];
-var sockets = [];
 var first_click = true;
 var players = 0;
 
@@ -64,34 +63,31 @@ function floodfill(player, x, y, moves){
 io.sockets.on('connection', function(socket){
 	socket.player = players;
 	players++;
-	sockets.push(socket);
 	
 	socket.on('click', function(data){
+		console.log('I got click: ' + data.action);
+		
+		if(first_click){
+			var c = board_stuff.newBoard(data.x, data.y, 35, 15);
+			boards[0] = JSON.parse(c);
+			boards[1] = JSON.parse(c);
+			first_click = false;
+		}
+		var board = boards[socket.player];
+		
 		if(data.action == 'flip'){
-			if(first_click){
-				var c = board_stuff.newBoard(data.x, data.y, 35, 15);
-				boards[0] = JSON.parse(c);
-				boards[1] = JSON.parse(c);
-				first_click = false;
-			}
-			
 			if(board[data.x][data.y].mine){
 				var mySignal = {board: 0, x: data.x, y: data.y, display: -2};
-				var yourSignal = {board: 1, x: data.x, y: data.y, display: 10};
-				if(player == 0){
-					sockets[0].emit('updateBoard', mySignal);
-					sockets[1].emit('updateBoard', yourSignal);
-				} else {
-					sockets[0].emit('updateBoard', yourSignal);
-					sockets[1].emit('updateBoard', mySignal);					
-				}
-				
+				var yourSignal = {board: 1, x: data.x, y: data.y, display: 10};	
+				socket.emit('updateBoard', mySignal);
+				socket.broadcast.emit('updateBoard', yourSignal);
 			} else if(board[data.x][data.y].flag) {
 				//do nothing?
 			} else {
 				//
 			}
-		} else if(data.action == 'flag'){
+		} else if(data.action == 'flag'){			
+			console.log('I got flag');
 			
 			if(board[data.x][data.y].flagged){
 				board[data.x][data.y] = false;
@@ -101,16 +97,11 @@ io.sockets.on('connection', function(socket){
 				var display = 9; //flag
 			}
 			
-			var mySignal = {board: 0, x: data.x, y: data.y, display: display};
-			var yourSignal = {board: 1, x: data.x, y: data.y, display: display};
+			var mySignal = [{board: 0, x: data.x, y: data.y, display: display}];
+			var yourSignal = [{board: 1, x: data.x, y: data.y, display: display}];
 			
-			if(player == 0){
-				sockets[0].emit('updateBoard', mySignal);
-				sockets[1].emit('updateBoard', yourSignal);
-			} else {
-				sockets[0].emit('updateBoard', yourSignal);
-				sockets[1].emit('updateBoard', mySignal);					
-			}
+			socket.emit('updateBoard', mySignal);
+			//socket.broadcast.emit('updateBoard', yourSignal);
 		}
 	});
 });

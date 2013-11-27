@@ -73,6 +73,7 @@ io.sockets.on('connection', function(socket){
 			boards[1] = JSON.parse(c);
 			first_click = false;
 		}
+		
 		var board = boards[socket.player];
 		
 		if(data.action == 'flip'){
@@ -89,6 +90,7 @@ io.sockets.on('connection', function(socket){
 		} else if(data.action == 'flag'){			
 			console.log('I got flag');
 			
+			
 			if(board[data.x][data.y].flagged){
 				board[data.x][data.y] = false;
 				var display = 11; //hidden, no flag
@@ -99,6 +101,8 @@ io.sockets.on('connection', function(socket){
 			
 			var mySignal = [{board: 0, x: data.x, y: data.y, display: display}];
 			var yourSignal = [{board: 1, x: data.x, y: data.y, display: display}];
+			
+			console.log('hfdshkagj');
 			
 			socket.emit('updateBoard', mySignal);
 			//socket.broadcast.emit('updateBoard', yourSignal);

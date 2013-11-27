@@ -112,7 +112,7 @@ function drawSquares()
                 g.fillStyle = 'black'
                 g.fillText("X", x*cellWidth+4, y*cellWidth+17)
             }
-            else if (this.contents.active[x][y].value != 0)
+            else if (this.contents.active[x][y].value < 9 && this.contents.active[x][y].value > 0)
             {
                 g.fillStyle = colors[parseInt(this.contents.active[x][y].value)+1];
                 g.fillText(this.contents.active[x][y].value, x*cellWidth+4, y*cellWidth+17)
@@ -198,14 +198,14 @@ function fireClick(event)
        // main.contents.active[x-1][y-1].flipped = true;
 //        main.contents.active[x-1][y-1].value = parseInt(Math.random()*8)+1;
         //send flip at x-1, y-1
-        socket.emit('click', { action: 'flip', x: x, y: y});
+        socket.emit('click', { action: 'flip', x: x-1, y: y-1});
 
     }
     else if (event.which == 3)
     {
 //        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
         //send flag at x-1, y-1
-        socket.emit('click', { action: 'flag', x: x, y: y});
+        socket.emit('click', { action: 'flag', x: x-1, y: y-1});
 
     }
     

@@ -23,7 +23,7 @@ app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', function(req,res){
-	res.render('index.html');
+	res.render('index');
 });
 
 server.listen(app.get('port'), function(){
@@ -43,7 +43,7 @@ function floodfill(user, x, y){
 		var dirs = [-1, 0, 1];
 		for(var i = 0; i < 3; i++){
 			for(var j = 0; j < 3; j++){
-				if(i == 1 && j == 1)continue; //don't do the same one again.		
+				if(i == 1 && j == 1) continue; //don't do the same one again.
 				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n){
 					floodfill(x+dirs[i], y+dirs[j]);
 				}

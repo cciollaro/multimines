@@ -286,9 +286,6 @@ function fireClick(event)
 
     }
     
-    lastX = -1;
-    lastY = -1;
-    
 //    lastX = x;
 //    lastY = y;
     main.repaint();
@@ -331,6 +328,9 @@ function processMove(response)
         target.contents.active[response.x][response.y].flagged = (response.display==11)? false : true;
         target.contents.active[response.x][response.y].value = response.display;
     }
+    
+    lastX = -1;
+    lastY = -1;
     
     target.repaint();
     

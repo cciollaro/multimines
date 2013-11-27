@@ -90,7 +90,8 @@ io.sockets.on('connection', function(socket){
 		
 		if(data.action == 'flip'){
 			if(board[data.x][data.y].mine){
-				var mySignal = {board: 0, x: data.x, y: data.y, display: -2};
+				console.log('happenin');
+				var mySignal = {board: 0, x: data.x, y: data.y, display: -1};
 				var yourSignal = {board: 1, x: data.x, y: data.y, display: 10};	
 				socket.emit('updateBoard', mySignal);
 				socket.broadcast.emit('updateBoard', yourSignal);

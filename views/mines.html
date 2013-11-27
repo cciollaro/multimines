@@ -1,0 +1,15 @@
+<link rel="stylesheet" href="style.css" />
+<script src="index.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://localhost');
+  socket.on('news', function (data) {
+    console.log(data);
+    socket.emit('click', { action: 'flip_or_flag', x: 4, y: 9 });
+  });
+</script>
+
+<body onload="main()">
+<canvas id="main" class="playfield" width=300 height=300></canvas>
+<canvas id="main2" class="playfield" width=300 height=300></canvas>
+</body>

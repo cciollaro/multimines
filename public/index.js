@@ -3,11 +3,14 @@ var main2;
 var lastX = -1;
 var lastY = -1;
 var dragging = false;
+var socket;
 
 var cellWidth = 20;
 
 var arr1 = makeInitial();
 var arr2 = makeInitial();
+
+var colors = ['rgba(7, 322, 244, 1)', 'rgba(0, 128, 37, 1)', 'rgba(255, 0, 23, 1)', 'rgba(0, 128, 37, 1)', 'rgba(1, 10, 121, 1)', 'rgba(131, 0, 7, 1)', 'rgba(0, 128, 37, 1)', 'rgba(0, 127, 128, 1)', 'rgba(0, 0, 0, 1)', 'rgba(128, 128, 128, 1)'];
             
 function makeInitial()
 {
@@ -90,33 +93,36 @@ function drawSquares()
 
             }
 
-            
+    
 //            g.fillRect(x*cellWidth,y*cellWidth,cellWidth,cellWidth); // x, y, width, height
             
             g.fillStyle="white";
             g.font="cellWidthpx Arial";
             
-            var off = 7;
-//            
+//
 //            if (this.contents.values[x].length > 1)
 //            {
 //                g.font="20px Arial";
 //                off = 0;
 //            }
             
-//            g.fillText(this.contents.values[x], x*cellWidth+off, x*cellWidth+25)
+            if (this.contents.active[x][y].value != 0)
+            {
+                g.fillStyle = colors[parseInt(this.contents.active[x][y].value)+1];
+                g.fillText(this.contents.active[x][y].value, x*cellWidth+4, y*cellWidth+17)
+            }
         }
     }
     
     g.fillStyle="black";
     g.font="20px Arial";
 //    g.fillText("we love javascript", 135, 20)
-    g.font="15px Arial";
+//    g.font="15px Arial";
 //    g.fillText("click a square to mark active", 10, 290)
     
     if (lastX >0 && lastY >0)
     {
-        g.font="25px Arial";
+//        g.font="25px Arial";
 //        g.fillText("("+lastX+", "+lastY+")", 10, 265)
     }
     
@@ -155,6 +161,14 @@ function main()
     main2.repaint = drawSquares;
     main2.repaint();
     
+    socket = io.connect('http://localhost:3000');
+    
+    socket.on('news', function (data) {
+              console.log(data);
+              socket.emit('click', { action: 'flip_or_flag', x: 4, y: 9 });
+              });
+
+    
     $('#main').mouseup(fireClick);
     
 }
@@ -174,13 +188,18 @@ function fireClick(event)
     
     if (event.which == 1)
     {
-        main.contents.active[x-1][y-1].flipped = true;
+       // main.contents.active[x-1][y-1].flipped = true;
+//        main.contents.active[x-1][y-1].value = parseInt(Math.random()*8)+1;
         //send flip at x-1, y-1
+        socket.emit('click', { action: 'flip', x: x, y: y});
+
     }
     else if (event.which == 3)
     {
-        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
+//        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
         //send flag at x-1, y-1
+        socket.emit('click', { action: 'flag', x: x, y: y});
+
     }
     
     lastX = x;

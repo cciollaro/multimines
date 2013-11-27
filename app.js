@@ -6,6 +6,7 @@ var partials = require('express-partials');
 var app = module.exports = express();
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
+var board_stuff = require('./lib/board_stuff.js');
 
 // all environments
 app.set('port', 3000);
@@ -31,46 +32,6 @@ server.listen(app.get('port'), function(){
 
 var boards = [];
 
-function newBoard(x1, y1, x2, y2, mines, n){
-	var board = [];
-	
-	//make it with x's and y's
-	for(var i = 0; i < n; i++){
-		board[i] = [];
-		for(var j = 0; j < n; j++){
-			board[i][j] = {x: i, y: j};
-		}
-	}
-	
-	//add mine mines
-	for(var i = 0; i < mines; i++){
-		var potentialX = Math.floor(Math.random()*n);
-		var potentialY = Math.floor(Math.random()*n);
-		//while mine or one of them are is the initial click of player.
-		while(board[potentialX][potentialY].mine || potentialX == x1 || potentialY == y1 || potentialX == x2 || potentialY == y2){
-			potentialX = Math.floor(Math.random()*n);
-			potentialY = Math.floor(Math.random()*n);
-		}
-		
-		board[potentialX][potentialY].mine = true;
-		
-		//update surroundings' surrounding attribute
-		var dirs = [-1, 0, 1];
-		for(var i = 0; i < 3; i++){
-			for(var j = 0; j < 3; j++){				
-				if(potentialX + dirs[i] >= 0 && potentialX + dirs[i] < n && potentialY + dirs[j] >= 0 && potentialY + dirs[j] < n){
-					board[potentialX + dirs[i]][potentialY + dirs[j]].surrounding = board[potentialX + dirs[i]][potentialY + dirs[j]].surrounding || 0;
-					board[potentialX + dirs[i]][potentialY + dirs[j]].surrounding++;
-				}
-			}
-		}
-		
-		
-	}
-	
-	return JSON.stringify(board);
-}
-
 function floodfill(user, x, y){
 	var board = (user==0 ? boards[0] : boards[1]);
 	var n = board.length;
@@ -90,10 +51,6 @@ function floodfill(user, x, y){
 		}
 		
 	}
-}
-
-function process(board, x, y){
-	
 }
 
 io.sockets.on('connection', function(socket){

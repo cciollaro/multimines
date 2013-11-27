@@ -74,6 +74,7 @@ function drawSquares()
                 g.fillStyle = "#c1c1c1";
                 g.fillRect(x*cellWidth,y*cellWidth,cellWidth,cellWidth); // x, y, width, height
             }
+
             else if (this.contents.active[x][y].flagged == true)
             {
                 g.fillStyle = "red";
@@ -106,7 +107,12 @@ function drawSquares()
 //                off = 0;
 //            }
             
-            if (this.contents.active[x][y].value != 0)
+            if (this.contents.active[x][y].value < 0)
+            {
+                g.fillStyle = 'black'
+                g.fillText("X", x*cellWidth+4, y*cellWidth+17)
+            }
+            else if (this.contents.active[x][y].value != 0)
             {
                 g.fillStyle = colors[parseInt(this.contents.active[x][y].value)+1];
                 g.fillText(this.contents.active[x][y].value, x*cellWidth+4, y*cellWidth+17)
@@ -164,6 +170,7 @@ function main()
     socket = io.connect('http://localhost:3000');
     
     socket.on('updateBoard', function (data) {
+              console.log("got update board");
               for (var x=0; x<data.length; x++)
                 processMove(data[x]);
               });

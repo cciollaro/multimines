@@ -118,10 +118,10 @@ io.sockets.on('connection', function(socket){
 			
 			
 			if(board[data.x][data.y].flagged){
-				board[data.x][data.y] = false;
+				board[data.x][data.y].flagged = false;
 				var display = 11; //hidden, no flag
 			} else {
-				board[data.x][data.y] = true;
+				board[data.x][data.y].flagged = true;
 				var display = 9; //flag
 			}
 			

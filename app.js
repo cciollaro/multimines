@@ -56,11 +56,11 @@ function floodfill(user, x, y){
 io.sockets.on('connection', function(socket){
 	socket.player = //0 or 1
 	socket.on('click', function(data){
-		
 		var id = 0; //get this dynamically though.
 		if(data.action == 'flip'){
-			//
+              console.log("got click");
 		} else if(data.action == 'flag'){
+              console.log("got flag");
 			//tell both players that the player flagged that one
 		}
 	});

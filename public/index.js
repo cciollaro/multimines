@@ -3,6 +3,7 @@ var main2;
 var lastX = -1;
 var lastY = -1;
 var dragging = false;
+var socket;
 
 var cellWidth = 20;
 
@@ -160,6 +161,14 @@ function main()
     main2.repaint = drawSquares;
     main2.repaint();
     
+    socket = io.connect('http://localhost:3000');
+    
+    socket.on('news', function (data) {
+              console.log(data);
+              socket.emit('click', { action: 'flip_or_flag', x: 4, y: 9 });
+              });
+
+    
     $('#main').mouseup(fireClick);
     
 }
@@ -179,14 +188,18 @@ function fireClick(event)
     
     if (event.which == 1)
     {
-        main.contents.active[x-1][y-1].flipped = true;
-        main.contents.active[x-1][y-1].value = parseInt(Math.random()*8)+1;
+       // main.contents.active[x-1][y-1].flipped = true;
+//        main.contents.active[x-1][y-1].value = parseInt(Math.random()*8)+1;
         //send flip at x-1, y-1
+        socket.emit('click', { action: 'flip', x: x, y: y});
+
     }
     else if (event.which == 3)
     {
-        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
+//        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
         //send flag at x-1, y-1
+        socket.emit('click', { action: 'flag', x: x, y: y});
+
     }
     
     lastX = x;

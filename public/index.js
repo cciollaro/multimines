@@ -163,9 +163,9 @@ function main()
     
     socket = io.connect('http://localhost:3000');
     
-    socket.on('news', function (data) {
-              console.log(data);
-              socket.emit('click', { action: 'flip_or_flag', x: 4, y: 9 });
+    socket.on('updateBoard', function (data) {
+              for (var x=0; x<data.length; x++)
+                processMove(data[x]);
               });
 
     
@@ -232,10 +232,12 @@ function processMove(response)
     if (response.action == 'flip' && !target.contents.active[response.x][response.y].flipped)
     {
         target.contents.active[response.x][response.y].flipped = true;
+        target.contents.active[response.x][response.y].value = response.display;
     }
     else (response.action == 'flag' && !target.contents.active[response.x][response.y].flipped)
     {
         target.contents.active[response.x][response.y].flagged = true;
+        target.contents.active[response.x][response.y].value = response.display;
     }
     
     target.repaint();

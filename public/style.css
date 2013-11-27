@@ -12,6 +12,18 @@
     top: 50%;
 }
 
+#timer
+{  
+    top: 20%;
+    left: 50%;
+    margin-left: -50px;
+    width: 100px;
+    height: 100px;
+    margin-top: -50px;
+    font-size: 20px;
+    position: absolute;
+}
+
 #main2
 {
     left: 70%;

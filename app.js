@@ -37,13 +37,14 @@ var players = 0;
 
 
 //player is 0 or 1
-function floodfill(player, x, y){
+//to invoke, moves should be ""
+function floodfill(player, x, y, moves){
 	var board = boards[player]; 
 	var n = board.length;
 	if(board[x][y].surrounding > 0){
 		board[x][y].flipped = true;
 		
-	} else if(board[x][y] == 0){
+	} else if(board[x][y] == 0) {
 		board[x][y].flipped = true; //and tell clients to do it
 		
 		var dirs = [-1, 0, 1];
@@ -63,7 +64,7 @@ function floodfill(player, x, y){
 io.sockets.on('connection', function(socket){
 	socket.player = players;
 	players++;
-	sockets.puch(socket);
+	sockets.push(socket);
 	
 	socket.on('click', function(data){
 		if(data.action == 'flip'){
@@ -91,8 +92,25 @@ io.sockets.on('connection', function(socket){
 				//
 			}
 		} else if(data.action == 'flag'){
-			//flip flag attribute. tell both players to flip flag attribute
-			//tell both players that the player flagged that one
+			
+			if(board[data.x][data.y].flagged){
+				board[data.x][data.y] = false;
+				var display = 11; //hidden, no flag
+			} else {
+				board[data.x][data.y] = true;
+				var display = 9; //flag
+			}
+			
+			var mySignal = {board: 0, x: data.x, y: data.y, display: display};
+			var yourSignal = {board: 1, x: data.x, y: data.y, display: display};
+			
+			if(player == 0){
+				sockets[0].emit('updateBoard', mySignal);
+				sockets[1].emit('updateBoard', yourSignal);
+			} else {
+				sockets[0].emit('updateBoard', yourSignal);
+				sockets[1].emit('updateBoard', mySignal);					
+			}
 		}
 	});
 });

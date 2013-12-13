@@ -22,35 +22,119 @@ app.use(express.session({ secret: 'minesman'}));
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', function(req,res){
+app.get('/', function(req,res){ //will switch this to /play
 	res.render('index');
 });
 
-server.listen(app.get('port'), function(){
-	console.log('Express server listening on port ' + app.get('port'));
+app.get('/difficulty', function(req,res){ //will switch this to /
+	res.render('difficulty');
 });
 
-var boards = [];
-var first_click = true;
-var players = 0;
+//might hold queues of games but for now just has one currentGame
+function GameRouter(){
+	this.gameID = 0;
+	this.currentGame = new Game(this.gameID++); //returns then increments
+}
 
+//can be expanded to take parameters such as difficulty
+GameRouter.prototype.findGame = function(player){
+	this.currentGame.addPlayer(player);
+	
+	if(this.currentGame.isFull()){
+		this.currentGame = new Game(this.gameID++);
+	}
+};
 
-//player is 0 or 1
+function Game(id){
+	this.id = id;
+	this.roomName = 'room' + this.id;
+	this.players = 0;
+	this.boards = [];
+	this.firstClick = true;
+}
+
+Game.prototype.addPlayer = function(player){
+	player.game = this;
+	player.id = this.players++;
+	player.socket.join(this.roomName);
+};
+
+Game.prototype.isFull = function(){
+	return this.players === 2;
+};
+
+Game.prototype.initBoards = function(){
+	var b = board_stuff.newBoard(data.x, data.y, 35, 15);
+	for(var i = 0; i < this.players; i++){
+		this.boards[i] = JSON.parse(b);
+	}
+};
+
+function Player(socket){
+	this.socket = socket;
+}
+
+Player.prototype.broadcast = function(name, data){
+	this.socket.broadcast.to(this.game.roomName).emit(name, data);
+};
+
+Player.prototype.everyone = function(name, data){
+	io.sockets.in(this.game.roomName).emit(name, data);
+};
+
+var gr = new GameRouter();
+
+io.sockets.on('connection', function(socket){
+	var player = new Player(socket);
+	gr.findGame(player);
+	
+	//should ideally send other people in the game too
+	//for now client can assume that they are the most recent person to join
+	//e.g. if player.id == 4, draw 0,1,2,3 as well
+	player.socket.emit('gameInit', {id: player.id});
+	
+	socket.on('reveal', function(data){
+		if(player.game.firstClick){
+			player.game.initBoards();
+			player.game.firstClick = false;
+		}
+		
+		var board = player.game.boards[player.id];
+		
+		if(board[data.x][data.y].mine){
+			player.everyone('updateBoard', {board: player.id, x: data.x, y: data.y, display: -1});
+		} else if(board[data.x][data.y].flag) {
+			//do nothing?
+		} else {
+			board[data.x][data.y].flipped = true;
+			var moves = floodfill(socket.player, data.x, data.y, []);
+			
+			var signal = JSON.parse(moves);
+			
+			for(var i = 0; i < signal.length; i++){
+				signal[i].board = player.id;
+			}
+			player.everyone('updateBoard', signal);
+		}
+	});
+	
+	socket.on('flag', function(data){
+		if(board[data.x][data.y].flagged){
+			board[data.x][data.y].flagged = false;
+			var display = 11; //hidden, no flag
+		} else {
+			board[data.x][data.y].flagged = true;
+			var display = 9; //flag
+		}
+		player.everyone('updateBoard', {board: player.id, x: data.x, y: data.y, display: display});		
+	});
+});
+
 //to invoke, moves should be ""
 function floodfill(player, x, y, moves){
 	var board = boards[player]; 
 	var n = board.length;
-	var surrounding = 0;
-	
-	var dirs = [-1, 0, 1];
-	for(var i = 0; i < 3; i++){
-		for(var j = 0; j < 3; j++){
-			if(i == 1 && j == 1) continue; //don't do the same one again.
-			if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n){
-				if(board[x+dirs[i]][y+dirs[j]].mine) surrounding++;
-			}
-		}
-	}
+	var surrounding = board[x][y].surrounding;
 	
 	if(surrounding > 0){
 		moves.push({x: x, y: y, display: surrounding}); //might need to be a front push.
@@ -71,68 +155,6 @@ function floodfill(player, x, y, moves){
 	return JSON.stringify(moves);
 }
 
-
-io.sockets.on('connection', function(socket){
-	socket.player = players;
-	players++;
-	
-	socket.on('click', function(data){
-		console.log('I got click: ' + data.action);
-		
-		if(first_click){
-			var c = board_stuff.newBoard(data.x, data.y, 35, 15);
-			boards[0] = JSON.parse(c);
-			boards[1] = JSON.parse(c);
-			first_click = false;
-		}
-		
-		var board = boards[socket.player];
-		
-		if(data.action == 'flip'){
-			if(board[data.x][data.y].mine){
-				console.log('happenin');
-				var mySignal = [{board: 0, x: data.x, y: data.y, display: -1}];
-				var yourSignal = [{board: 1, x: data.x, y: data.y, display: 10}];	
-				socket.emit('updateBoard', mySignal);
-				socket.broadcast.emit('updateBoard', yourSignal);
-			} else if(board[data.x][data.y].flag) {
-				//do nothing?
-			} else {
-				//moves needs to be an array of update objects. {x,y,action}, in string form.
-				board[data.x][data.y].flipped = true;
-				var moves = floodfill(socket.player, data.x, data.y, []);
-				var mySignal = JSON.parse(moves);
-				var yourSignal = JSON.parse(moves);
-				for(var i = 0; i < mySignal.length; i++){
-					mySignal[i].board = 0;
-				}
-				
-				for(var i = 0; i < yourSignal.length; i++){
-					yourSignal[i].board = 1;
-				}
-				
-				socket.emit('updateBoard', mySignal);
-				socket.broadcast.emit('updateBoard', yourSignal);
-			}
-		} else if(data.action == 'flag'){			
-			console.log('I got flag');
-			
-			
-			if(board[data.x][data.y].flagged){
-				board[data.x][data.y].flagged = false;
-				var display = 11; //hidden, no flag
-			} else {
-				board[data.x][data.y].flagged = true;
-				var display = 9; //flag
-			}
-			
-			var mySignal = [{board: 0, x: data.x, y: data.y, display: display}];
-			var yourSignal = [{board: 1, x: data.x, y: data.y, display: display}];
-			
-			console.log('hfdshkagj');
-			
-			socket.emit('updateBoard', mySignal);
-			socket.broadcast.emit('updateBoard', yourSignal);
-		}
-	});
+server.listen(app.get('port'), function(){
+	console.log('Express server listening on port ' + app.get('port'));
 });

@@ -36,15 +36,6 @@ function GameRouter(){
 	this.currentGame = new Game(this.gameID++); //returns then increments
 }
 
-//can be expanded to take parameters such as difficulty
-GameRouter.prototype.findGame = function(player){
-	this.currentGame.addPlayer(player);
-	
-	if(this.currentGame.isFull()){
-		this.currentGame = new Game(this.gameID++);
-	}
-};
-
 function Game(id){
 	this.id = id;
 	this.roomName = 'room' + this.id;
@@ -84,6 +75,15 @@ Player.prototype.everyone = function(name, data){
 
 var gr = new GameRouter();
 
+//can be expanded to take parameters such as difficulty
+GameRouter.prototype.findGame = function(player){
+	this.currentGame.addPlayer(player);
+	
+	if(this.currentGame.isFull()){
+		this.currentGame = new Game(this.gameID++);
+	}
+};
+
 io.sockets.on('connection', function(socket){
 	var player = new Player(socket);
 	gr.findGame(player);
@@ -92,6 +92,10 @@ io.sockets.on('connection', function(socket){
 	//for now client can assume that they are the most recent person to join
 	//e.g. if player.id == 4, draw 0,1,2,3 as well
 	player.socket.emit('gameInit', {id: player.id});
+	player.broadcast('playerJoined', {id: player.id});
+	if(player.game.isFull()){
+		player.everyone('gameStart', {});
+	}
 	
 	socket.on('reveal', function(data){
 		if(player.game.firstClick){

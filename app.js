@@ -91,7 +91,7 @@ io.sockets.on('connection', function(socket){
 	//should ideally send other people in the game too
 	//for now client can assume that they are the most recent person to join
 	//e.g. if player.id == 4, draw 0,1,2,3 as well
-	player.socket.emit('gameInit', {id: player.id});
+	player.socket.emit('gameInit', {yourId: player.id});
 	player.broadcast('playerJoined', {id: player.id});
 	if(player.game.isFull()){
 		player.everyone('gameStart', {});

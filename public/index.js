@@ -194,7 +194,7 @@ function main()
     main2.repaint = drawSquares;
     main2.repaint();
     
-    socket = io.connect('http://localhost:3000');
+    socket = io.connect();
     
     socket.on('updateBoard', function (data) {
               console.log("got update board");
@@ -225,26 +225,14 @@ function fireClick(event)
     x = Math.ceil(x/cellWidth);
     y = Math.ceil(y/cellWidth);
     
-    if (event.which == 1)
-    {
-       // main.contents.active[x-1][y-1].flipped = true;
-//        main.contents.active[x-1][y-1].value = parseInt(Math.random()*8)+1;
-        //send flip at x-1, y-1
-        if (noMoving <= 0)
-            socket.emit('click', { action: 'flip', x: x-1, y: y-1});
-
-    }
-    else if (event.which == 3)
-    {
-//        main.contents.active[x-1][y-1].flagged = !main.contents.active[x-1][y-1].flagged;
-        //send flag at x-1, y-1
-        if (noMoving <= 0)
-            socket.emit('click', { action: 'flag', x: x-1, y: y-1});
-
-    }
+    var action = (event.which == 1)? 'reveal' : 'flag';
+    
+    if (noMoving <= 0)
+        socket.emit(action, {x: x-1, y: y-1});
     
     lastX = x;
     lastY = y;
+    
     main.repaint();
 }
 

@@ -229,6 +229,7 @@ function fireClick(event)
     
     if (noMoving <= 0)
         socket.emit(action, {x: x-1, y: y-1});
+
     
     lastX = x;
     lastY = y;

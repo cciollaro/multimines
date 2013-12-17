@@ -90,7 +90,7 @@ function drawSquares()
             g.fillStyle = '#c1c1c1';
             g.fillRect(x*cellWidth+2,y*cellWidth+2,cellWidth-4,cellWidth-4); // x, y, width, height
             
-            if (this.contents.active[x][y].flipped == true)
+            if (this.contents.active[x][y].flipped == true || (x == lastX-1 && y == lastY-1 && (lastX >0 && lastY >0)))
             {
                 g.fillStyle = "#c1c1c1";
                 g.fillRect(x*cellWidth,y*cellWidth,cellWidth,cellWidth); // x, y, width, height
@@ -98,7 +98,7 @@ function drawSquares()
 
             else if (this.contents.active[x][y].flagged == true)
             {
-                g.fillStyle = "red";
+                g.fillStyle = (this.contents.active[x][y].value == -27)? "blue" : "red";
                 g.beginPath();
                 g.moveTo(x*cellWidth+11, y*cellWidth+3); // give the (x,y) coordinates
                 g.lineTo(x*cellWidth+3, y*cellWidth+8);
@@ -128,10 +128,14 @@ function drawSquares()
 //                off = 0;
 //            }
             
-            if (this.contents.active[x][y].value < 0)
+            if (this.contents.active[x][y].value < 0 && this.contents.active[x][y].value != -27)
             {
                 g.fillStyle = 'black'
                 g.fillText("X", x*cellWidth+4, y*cellWidth+17)
+                this.contents.active[x][y].flagged = true;
+                this.contents.active[x][y].flipped = false;
+                this.contents.active[x][y].value = -27;
+
             }
             else if (this.contents.active[x][y].value < 9 && this.contents.active[x][y].value > 0)
             {
@@ -147,11 +151,11 @@ function drawSquares()
 //    g.font="15px Arial";
 //    g.fillText("click a square to mark active", 10, 290)
     
-    if (lastX >0 && lastY >0)
-    {
+//    if (lastX >0 && lastY >0)
+//    {
 //        g.font="25px Arial";
 //        g.fillText("("+lastX+", "+lastY+")", 10, 265)
-    }
+//    }
     
     if (noMoving > 0)
     {
@@ -203,12 +207,21 @@ function main()
                 notTicking = false;
                 setTimeout(updateTimer, 1000);
               }
-              for (var x=0; x<data.length; x++)
-                processMove(data[x]);
+              if (data.display)
+              {
+                  processMove(data);
+              }
+              else
+              {
+                  for (var x=0; x<data.length; x++)
+                    processMove(data[x]);
+              }
               });
 
     
     $('#main').mouseup(fireClick);
+    $('#main').mousedown(setPress);
+
     
 }
 
@@ -217,24 +230,39 @@ function clear(g)
     g.clearRect(0, 0, main.width, main.height);
 }
 
+function setPress(event)
+{
+    if (event.which == 1 && (noMoving <= 0))
+    {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        
+        x = Math.ceil(x/cellWidth);
+        y = Math.ceil(y/cellWidth);
+        
+        lastX = x;
+        lastY = y;
+        
+        main.repaint();
+    }
+}
+
 function fireClick(event)
 {
-    var x = event.offsetX;
-    var y = event.offsetY;
-    
-    x = Math.ceil(x/cellWidth);
-    y = Math.ceil(y/cellWidth);
-    
-    var action = (event.which == 1)? 'reveal' : 'flag';
-    
     if (noMoving <= 0)
+    {
+        var x = event.offsetX;
+        var y = event.offsetY;
+        
+        x = Math.ceil(x/cellWidth);
+        y = Math.ceil(y/cellWidth);
+        
+        var action = (event.which == 1)? 'reveal' : 'flag';
+        
         socket.emit(action, {x: x-1, y: y-1});
-
-    
-    lastX = x;
-    lastY = y;
-    
-    main.repaint();
+        
+        main.repaint();
+    }
 }
 
 function gradientify(g)
@@ -253,6 +281,8 @@ function gradientify(g)
 function processMove(response)
 {
     var target;
+    lastX = -1;
+    lastY = -1;
     
     if (response.board == 0)
         target = document.getElementById("main");
@@ -269,7 +299,8 @@ function processMove(response)
             noMoving = 5;
         }
     }
-    else (!target.contents.active[response.x][response.y].flipped && response.display>=9)
+    
+    if (response.display>=9)
     {
         target.contents.active[response.x][response.y].flagged = (response.display==11)? false : true;
         target.contents.active[response.x][response.y].value = response.display;

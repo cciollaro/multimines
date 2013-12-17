@@ -73,6 +73,10 @@ Player.prototype.everyone = function(name, data){
 	io.sockets.in(this.game.roomName).emit(name, data);
 };
 
+Player.prototype.board = function(){
+	return this.game.boards[this.id];
+};
+
 var gr = new GameRouter();
 
 //can be expanded to take parameters such as difficulty
@@ -97,25 +101,21 @@ io.sockets.on('connection', function(socket){
 	if(player.game.isFull()){
 		player.everyone('gameStart', {});
 	}
-    
-    socket.player = player;
-	
+    	
 	socket.on('reveal', function(data){
               
-              var player = socket.player;
-
 		if(player.game.firstClick){
 			player.game.initBoards(data);
 			player.game.firstClick = false;
 		}
-		var board = player.game.boards[player.id];
+		
+		var board = player.board();
 		
 		if(board[data.x][data.y].mine){
-			player.everyone('updateBoard', {board: player.id, x: data.x, y: data.y, display: -1});
+			player.everyone('updateBoard', {board: player.id, x: data.x, y: data.y, display: -2});
 		} else if(board[data.x][data.y].flag) {
 			//do nothing?
 		} else {
-			board[data.x][data.y].flipped = true;
 			var moves = floodfill(player, data.x, data.y, []);
 			
 			var signal = JSON.parse(moves);
@@ -128,6 +128,14 @@ io.sockets.on('connection', function(socket){
 	});
 	
 	socket.on('flag', function(data){
+		
+		if(player.game.firstClick){
+			player.game.initBoards(data);
+			player.game.firstClick = false;
+		}
+		
+		var board = player.board();
+		
 		if(board[data.x][data.y].flagged){
 			board[data.x][data.y].flagged = false;
 			var display = 11; //hidden, no flag
@@ -139,14 +147,15 @@ io.sockets.on('connection', function(socket){
 	});
 });
 
-//to invoke, moves should be ""
+//to invoke, moves should be []
 function floodfill(player, x, y, moves){
-	var board = player.game.boards[player.id];
-	var n = board.length;
-	var surrounding = board[x][y].surrounding;
+	var board = player.board();
+	var n = board.length; //probably should be passed in
 	
+	var surrounding = board[x][y].surrounding;
+	board[x][y].flipped = true;
 	if(surrounding > 0){
-		moves.push({x: x, y: y, display: surrounding}); //might need to be a front push.
+		moves.push({x: x, y: y, display: surrounding});
 	} else if(surrounding == 0) {
 		board[x][y].flipped = true;
 		moves.push({x: x, y: y, display: 0});
@@ -155,9 +164,7 @@ function floodfill(player, x, y, moves){
 		for(var i = 0; i < 3; i++){
 			for(var j = 0; j < 3; j++){
 				if(i == 1 && j == 1) continue; //don't do the same one again.
-                console.log(board);
-				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n && board[x+dirs[i]][y+dirs[i]] && !(board[x+dirs[i]][y+dirs[i]].flipped)){
-					board[x+dirs[i]][y+dirs[j]].flipped = true;
+				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n && !board[x+dirs[i]][y+dirs[j]].flipped){
 					floodfill(player, x+dirs[i], y+dirs[j], moves);
 				}
 			}

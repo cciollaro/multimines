@@ -1,33 +1,55 @@
 var express = require('express');
-var http = require('http');
-var path = require('path');
-var partials = require('express-partials');
-var app = module.exports = express();
+var http    = require('http');
+var path    = require('path');
+var io      = require('socket.io');
+var app     = express();
+
+var PORT = process.env.PORT || 3000;
+var HOST = process.env.HOST || 'localhost';
+
+var EXPRESS_SID_KEY = 'express.sid';
+var COOKIE_SECRET   = 'minesman';
+
+var cookieParser = express.cookieParser(COOKIE_SECRET);
+var sessionStore = new express.session.MemoryStore();
+
+// Configure Express app with :
+// * Cookie Parser created above
+// * Configure Session Store
+app.configure(function () {
+    app.use(cookieParser);
+    app.use(express.session({
+        store: sessionStore,
+        cookie: { 
+            httpOnly: true
+        },
+        key: EXPRESS_SID_KEY
+    }));
+    app.set('views', __dirname + '/views');
+	app.set('view engine', 'ejs');
+	app.use(express.logger('dev'));
+	app.use(express.bodyParser());
+	app.use(express.methodOverride());
+	app.use(app.router);
+	app.use(express.static(path.join(__dirname, 'public')));
+});
+
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
-var board_stuff = require('./lib/board_stuff.js');
 
-// all environments
-app.set('port', 3000);
-app.use(express.favicon(__dirname + '/public/images/go.ico'));
-app.use(partials());
-app.set('views', __dirname + '/views');
-app.set('view engine', 'ejs');
-app.use(express.logger('dev'));
-app.use(express.bodyParser());
-app.use(express.methodOverride());
-app.use(express.cookieParser());
-app.use(express.session({ secret: 'minesman'}));
-app.use(app.router);
-app.use(express.static(path.join(__dirname, 'public')));
+//BEGIN MINES STUFF
+var number_of_players = 0;
 
-app.get('/', function(req,res){ //will switch this to /play
+app.get('/', function(req,res){
+	req.session.playerId = number_of_players++;
 	res.render('index');
 });
 
-app.get('/difficulty', function(req,res){ //will switch this to /
+app.get('/difficulty', function(req,res){
 	res.render('difficulty');
 });
+
+var board_stuff = require('./lib/board_stuff.js');
 
 //might hold queues of games but for now just has one currentGame
 function GameRouter(){
@@ -88,7 +110,57 @@ GameRouter.prototype.findGame = function(player){
 	}
 };
 
-io.sockets.on('connection', function(socket){
+//to invoke, moves should be []
+function floodfill(player, x, y, moves){
+	var board = player.board();
+	var n = board.length; //probably should be passed in
+	
+	var surrounding = board[x][y].surrounding;
+	board[x][y].flipped = true;
+	if(surrounding > 0){
+		moves.push({x: x, y: y, display: surrounding});
+	} else if(surrounding == 0) {
+		board[x][y].flipped = true;
+		moves.push({x: x, y: y, display: 0});
+        var dirs = [-1, 0, 1];
+		
+		for(var i = 0; i < 3; i++){
+			for(var j = 0; j < 3; j++){
+				if(i == 1 && j == 1) continue; //don't do the same one again.
+				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n && !board[x+dirs[i]][y+dirs[j]].flipped){
+					floodfill(player, x+dirs[i], y+dirs[j], moves);
+				}
+			}
+		}
+	}
+	return JSON.stringify(moves);
+}
+
+//SOCKET STUFF BELOW HERE
+io.set('authorization', function (data, callback) {
+    console.log(data);
+    
+    if(!data.headers.cookie) {
+        return callback('No cookie transmitted.', false);
+    }
+    
+    cookieParser(data, {}, function(parseErr) {
+        if(parseErr) { return callback('Error parsing cookies.', false); }
+        var sidCookie = (data.secureCookies && data.secureCookies[EXPRESS_SID_KEY]) ||
+                        (data.signedCookies && data.signedCookies[EXPRESS_SID_KEY]) ||
+                        (data.cookies && data.cookies[EXPRESS_SID_KEY]);
+        sessionStore.load(sidCookie, function(err, session) {
+            if (err || !session) {
+                callback('Error', false);
+            } else {
+                data.session = session;
+                callback(null, true);
+            }
+        });
+    });
+});
+
+io.sockets.on('connection', function(socket){	
 	var player = new Player(socket);
 	gr.findGame(player);
 	
@@ -147,32 +219,6 @@ io.sockets.on('connection', function(socket){
 	});
 });
 
-//to invoke, moves should be []
-function floodfill(player, x, y, moves){
-	var board = player.board();
-	var n = board.length; //probably should be passed in
-	
-	var surrounding = board[x][y].surrounding;
-	board[x][y].flipped = true;
-	if(surrounding > 0){
-		moves.push({x: x, y: y, display: surrounding});
-	} else if(surrounding == 0) {
-		board[x][y].flipped = true;
-		moves.push({x: x, y: y, display: 0});
-        var dirs = [-1, 0, 1];
-		
-		for(var i = 0; i < 3; i++){
-			for(var j = 0; j < 3; j++){
-				if(i == 1 && j == 1) continue; //don't do the same one again.
-				if(x + dirs[i] >= 0 && x + dirs[i] < n && y + dirs[j] >= 0 && y + dirs[j] < n && !board[x+dirs[i]][y+dirs[j]].flipped){
-					floodfill(player, x+dirs[i], y+dirs[j], moves);
-				}
-			}
-		}
-	}
-	return JSON.stringify(moves);
-}
-
-server.listen(app.get('port'), function(){
-	console.log('Express server listening on port ' + app.get('port'));
+server.listen(PORT, HOST, null, function() {
+    console.log('Server listening on port %d in %s mode', this.address().port, app.settings.env);
 });

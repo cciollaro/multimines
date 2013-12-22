@@ -198,12 +198,6 @@ function main()
     main2.repaint = drawSquares;
     main2.repaint();
     
-    socket = io.connect();
-    
-    
-    //gameId will be dynamic OBVS
-    socket.emit('initStuff', {gameId: 3492});
-    
     socket.on('updateBoard', function (data) {
               console.log("got update board");
               if (notTicking)

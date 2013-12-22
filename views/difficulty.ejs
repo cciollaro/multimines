@@ -1,3 +1,28 @@
-<a href="/?difficulty=easy">easy</a>
-<a href="/?difficulty=medium">medium</a>
-<a href="/?difficulty=hard">hard</a>
+<link rel="stylesheet" href="css/style.css" />
+<script src="js/index.js"></script>
+<script src="js/jquery.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+
+
+<div id="gameplace">
+
+	<a href="#" data-difficulty="easy">easy</a>
+	<a href="#" data-difficulty="medium">medium</a>
+	<a href="#" data-difficulty="hard">hard</a>
+
+</div>
+
+<script>
+	socket = io.connect();
+	
+	socket.on('initGame', function(data){
+		jQuery('#gameplace').html(data.html);
+	});
+
+	jQuery('a').click(function(e){
+		var selection = jQuery(this).data('difficulty');
+		socket.emit('joinGame', {difficulty: selection});
+		e.preventDefault();
+	});
+</script>

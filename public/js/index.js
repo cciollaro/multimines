@@ -6,7 +6,9 @@ var dragging = false;
 var socket;
 var notTicking = true;
 var timer = 0;
-var noMoving = 0;
+var noMoving = [false, false];
+
+var pid;
 
 var cellWidth = 20;
 
@@ -36,16 +38,15 @@ function makeInitial()
 function updateTimer()
 {
     document.getElementById("timer").innerHTML = ++timer;
-    console.log(noMoving);
-    if (noMoving > 0)
-    {
-        noMoving--;
-    }
-    if (noMoving == 1)
-    {
-        noMoving = 0;
-        main.repaint();
-    }
+//    if (noMoving > 0)
+//    {
+//        noMoving--;
+//    }
+//    if (noMoving == 1)
+//    {
+//        noMoving = 0;
+//        main.repaint();
+//    }
     
     if (!notTicking)
         setTimeout(updateTimer, 1000);
@@ -61,12 +62,14 @@ function drawSquares()
     {
         for (var y=0; y<this.contents.active[0].length; y++)
         {
+            
             if (this.contents.active[x][y] == 0)
                 g.fillStyle="blue";
             else if (this.contents.active[x][y] == 1)
                 g.fillStyle="red";
             else
                 g.fillStyle="yellow";
+            
             
             
             g.fillStyle   = '#fff';
@@ -90,15 +93,21 @@ function drawSquares()
             g.fillStyle = '#c1c1c1';
             g.fillRect(x*cellWidth+2,y*cellWidth+2,cellWidth-4,cellWidth-4); // x, y, width, height
             
+            
             if (this.contents.active[x][y].flipped == true || (x == lastX-1 && y == lastY-1 && (lastX >0 && lastY >0)))
             {
                 g.fillStyle = "#c1c1c1";
                 g.fillRect(x*cellWidth,y*cellWidth,cellWidth,cellWidth); // x, y, width, height
+                
+//                g.strokeStyle = "white";
+//                g.lineWidth=0;
+//                g.strokeRect(x*cellWidth+1,y*cellWidth+1,cellWidth-2,cellWidth-2);
             }
 
             else if (this.contents.active[x][y].flagged == true)
             {
-                g.fillStyle = (this.contents.active[x][y].value == -27)? "blue" : "red";
+                g.strokeStyle = "black";
+                g.fillStyle = (this.contents.active[x][y].perma)? "blue" : "red";
                 g.beginPath();
                 g.moveTo(x*cellWidth+11, y*cellWidth+3); // give the (x,y) coordinates
                 g.lineTo(x*cellWidth+3, y*cellWidth+8);
@@ -131,7 +140,9 @@ function drawSquares()
             if (this.contents.active[x][y].value < 0 && this.contents.active[x][y].value != -27)
             {
                 g.fillStyle = 'black'
-                g.fillText("X", x*cellWidth+4, y*cellWidth+17)
+                g.fillText("X", x*cellWidth+3, y*cellWidth+17)
+//                g.fillText("+", x*cellWidth+4, y*cellWidth+16)
+//                g.fillText("o", x*cellWidth+4, y*cellWidth+17)
                 this.contents.active[x][y].flagged = true;
                 this.contents.active[x][y].flipped = false;
                 this.contents.active[x][y].value = -27;
@@ -157,13 +168,13 @@ function drawSquares()
 //        g.fillText("("+lastX+", "+lastY+")", 10, 265)
 //    }
     
-    if (noMoving > 0)
+    if (noMoving[this.bid])
     {
         g.fillStyle = 'rgba(255, 0, 0, .2)'
         g.fillRect(0,0,300,300); // x, y, width, height
     }
     
-     // gradientify(g);     // uncomment for fun!
+//      gradientify(g);     // uncomment for fun!
 
     
 }
@@ -182,6 +193,9 @@ function main()
     
     main.contents = {};
     main2.contents = {};
+    
+    main.bid = pid;
+    main2.bid = 1-pid;
 
     $('body').on('contextmenu', '#main', function(e){ return false; });
 
@@ -230,7 +244,7 @@ function clear(g)
 
 function setPress(event)
 {
-    if (event.which == 1 && (noMoving <= 0))
+    if (event.which == 1 && (!noMoving[pid]))
     {
         var x = event.offsetX;
         var y = event.offsetY;
@@ -247,7 +261,7 @@ function setPress(event)
 
 function fireClick(event)
 {
-    if (noMoving <= 0)
+    if (!noMoving[pid])
     {
         var x = event.offsetX;
         var y = event.offsetY;
@@ -258,7 +272,7 @@ function fireClick(event)
         var action = (event.which == 1)? 'reveal' : 'flag';
         
         socket.emit(action, {x: x-1, y: y-1});
-        
+
         main.repaint();
     }
 }
@@ -268,11 +282,12 @@ function gradientify(g)
     g.rect(0, 0, main.width, main.height);
     
     // add linear gradient
-    var grd = g.createLinearGradient( main.width/2, 0, main.width/2, main.height);
-    grd.addColorStop(1, 'cyan');
-    grd.addColorStop(0, 'transparent');
+    var gradient=g.createLinearGradient(0,0,170,170);
+    gradient.addColorStop("0","rgba(7, 322, 244, .1)");
+    gradient.addColorStop("1","rgba(7, 322, 244, .2)");
+
     
-    g.fillStyle = grd;
+    g.fillStyle = gradient;
     g.fill();
 }
 
@@ -282,7 +297,7 @@ function processMove(response)
     lastX = -1;
     lastY = -1;
     
-    if (response.board == 0)
+    if (response.board == pid)
         target = document.getElementById("main");
     else
         target = document.getElementById("main2");
@@ -292,16 +307,22 @@ function processMove(response)
         target.contents.active[response.x][response.y].flipped = true;
         target.contents.active[response.x][response.y].value = response.display;
         
-        if (response.display<0 && response.board==0)
+        if (response.display<0)
         {
-            noMoving = 5;
+            noMoving[response.board] = true;
         }
     }
-    
     if (response.display>=9)
     {
-        target.contents.active[response.x][response.y].flagged = (response.display==11)? false : true;
+        target.contents.active[response.x][response.y].flagged = (response.display==9)? false : true;
         target.contents.active[response.x][response.y].value = response.display;
+        
+        if (response.display==11)
+        {
+            target.contents.active[response.x][response.y].perma = true;
+            
+            noMoving[response.board] = false;
+        }
     }
     
     target.repaint();

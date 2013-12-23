@@ -21,7 +21,8 @@
 	socket = io.connect();
 	
 	socket.on('initGame', function(data){
-		jQuery('#gameplace').html(data.html);
+		jQuery('#gameplace').html("Yo! You're on the left and your opponent is on the right.");
+        pid = data.id;
         main();
 	});
 

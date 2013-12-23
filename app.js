@@ -79,12 +79,19 @@ io.sockets.on('connection', function(socket){
 		var game = gr.findGame(data.difficulty);
 		game.addPlayer(player);
 		
-		player.emit('initGame', {html: game.html()});
+		player.socket.emit('initGame', {html: game.html(), id: player.index});
 		player.broadcast('playerJoined', {id: player.index});
+		
+		if(game.isFull()){
+			setTimeout(function(){
+				game.started = true;
+				player.everyone('start', {});			
+			}, 1000);
+		}
 	});
     
 	socket.on('reveal', function(data){
-        if(player.frozen){
+        if(player.frozen || !player.game.started){
 			return;
 		}
 		
@@ -119,7 +126,7 @@ io.sockets.on('connection', function(socket){
 	});
 	
 	socket.on('flag', function(data){
-		 if(player.frozen){
+		 if(player.frozen || !player.game.started){
 			return;
 		}
 		

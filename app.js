@@ -97,7 +97,7 @@ io.sockets.on('connection', function(socket){
 		
 		var board = player.board;
 		
-		if(board[data.x][data.y].mine){
+		if(board.matrix[data.x][data.y].mine){
 			player.frozen = true;
 			player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -1});
 			//freeze em for 3 seconds
@@ -105,7 +105,7 @@ io.sockets.on('connection', function(socket){
 				player.frozen = false;
 				player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: 11});
 			}, 3000);
-		} else if(board[data.x][data.y].flag) {
+		} else if(board.matrix[data.x][data.y].flag) {
 			return;
 		} else {
 			var signal = board.floodfill(data.x, data.y);
@@ -122,6 +122,8 @@ io.sockets.on('connection', function(socket){
 		 if(player.frozen){
 			return;
 		}
+              
+        var game = player.game;
 		
 		if(game.firstClick){
 			game.initBoards(data);
@@ -130,11 +132,11 @@ io.sockets.on('connection', function(socket){
 		
 		var board = player.board;
 		
-		if(board[data.x][data.y].flagged){
-			board[data.x][data.y].flagged = false;
+		if(board.matrix[data.x][data.y].flagged){
+			board.matrix[data.x][data.y].flagged = false;
 			var display = 9; //unflag
 		} else {
-			board[data.x][data.y].flagged = true;
+			board.matrix[data.x][data.y].flagged = true;
 			var display = 10; //flag
 		}
 		player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: display});

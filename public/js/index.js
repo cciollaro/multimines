@@ -212,23 +212,27 @@ function main()
     main2.repaint = drawSquares;
     main2.repaint();
     
-    socket.on('updateBoard', function (data) {
-              console.log("got update board");
-              if (notTicking)
-              {
-                notTicking = false;
-                setTimeout(updateTimer, 1000);
-              }
-              if (data.display)
-              {
-                  processMove(data);
-              }
-              else
-              {
-                  for (var x=0; x<data.length; x++)
-                    processMove(data[x]);
-              }
-              });
+    socket.on('updateBoard', function (data)
+      {
+//          console.log("got update board");
+          if (notTicking)
+          {
+            notTicking = false;
+            setTimeout(updateTimer, 1000);
+          }
+          if (data.display)
+          {
+              processMove(data);
+          }
+          else
+          {
+              for (var x=0; x<data.length; x++)
+                processMove(data[x]);
+          }
+              
+            if (data.time)
+              timer = parseInt(data.time/1000);
+      });
 
     
     $('#main').mouseup(fireClick);

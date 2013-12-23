@@ -106,7 +106,7 @@ io.sockets.on('connection', function(socket){
 		
 		if(board.matrix[data.x][data.y].mine){
 			player.frozen = true;
-			player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -1});
+              player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -1, time: player.game.getTimeOfGame()});
 			//freeze em for 3 seconds
 			setTimeout(function(){
 				player.frozen = false;

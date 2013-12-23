@@ -79,10 +79,15 @@ io.sockets.on('connection', function(socket){
 		var game = gr.findGame(data.difficulty);
 		game.addPlayer(player);
 		
-		socket.emit('initGame', {html: game.html()});
+		player.emit('initGame', {html: game.html()});
+		player.broadcast('playerJoined', {id: player.index});
 	});
     
 	socket.on('reveal', function(data){
+        if(player.frozen){
+			return;
+		}
+		
         var game = player.game;
         
 		if(game.firstClick){
@@ -93,9 +98,15 @@ io.sockets.on('connection', function(socket){
 		var board = player.board;
 		
 		if(board[data.x][data.y].mine){
-			player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -2});
+			player.frozen = true;
+			player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -1});
+			//freeze em for 3 seconds
+			setTimeout(function(){
+				player.frozen = false;
+				player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: 11});
+			}, 3000);
 		} else if(board[data.x][data.y].flag) {
-			//do nothing?
+			return;
 		} else {
 			var signal = board.floodfill(data.x, data.y);
 			
@@ -108,6 +119,9 @@ io.sockets.on('connection', function(socket){
 	});
 	
 	socket.on('flag', function(data){
+		 if(player.frozen){
+			return;
+		}
 		
 		if(game.firstClick){
 			game.initBoards(data);
@@ -118,10 +132,10 @@ io.sockets.on('connection', function(socket){
 		
 		if(board[data.x][data.y].flagged){
 			board[data.x][data.y].flagged = false;
-			var display = 11; //hidden, no flag
+			var display = 9; //unflag
 		} else {
 			board[data.x][data.y].flagged = true;
-			var display = 9; //flag
+			var display = 10; //flag
 		}
 		player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: display});
 	});

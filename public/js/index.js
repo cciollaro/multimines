@@ -6,7 +6,7 @@ var dragging = false;
 var socket;
 var notTicking = true;
 var timer = 0;
-var noMoving = [false, false];
+var noMoving;
 
 var pid;
 
@@ -181,6 +181,8 @@ function drawSquares()
 
 function main()
 {
+    // this jazz will probably become an array of canvases, as opposed to just main and main2
+    
     main = document.getElementById("main");
     main2 = document.getElementById("main2");
 
@@ -193,6 +195,8 @@ function main()
     
     main.contents = {};
     main2.contents = {};
+    
+    noMoving = [false, false];
     
     main.bid = pid;
     main2.bid = 1-pid;
@@ -231,7 +235,10 @@ function main()
           }
               
             if (data.time)
+              {
               timer = parseInt(data.time/1000);
+//              alert("updated timer to "+timer);
+              }
       });
 
     

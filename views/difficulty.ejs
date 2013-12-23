@@ -15,7 +15,7 @@
 
 <div id="timer">0</div>
 <canvas id="main" class="playfield" width=300 height=300></canvas>
-<canvas id="main2" class="playfield" width=300 height=300></canvas>'
+<canvas id="main2" class="playfield" width=300 height=300></canvas>
 
 <script>
 	socket = io.connect();
@@ -23,7 +23,7 @@
 	socket.on('initGame', function(data){
 		jQuery('#gameplace').html("Yo! You're on the left and your opponent is on the right.");
         pid = data.id;
-        main();
+        main(data.width, data.height);
 	});
 
 	jQuery('a').click(function(e){

@@ -103,17 +103,18 @@ io.sockets.on('connection', function(socket){
 		}
 		
 		var board = player.board;
-		
-		if(board.matrix[data.x][data.y].mine){
+		if(board.matrix[data.x][data.y].flag || board.matrix[data.x][data.y].permaflag) {
+			return;
+		} else if(board.matrix[data.x][data.y].mine){
 			player.frozen = true;
-              player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -1, time: player.game.getTimeOfGame()});
+            player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -1, time: player.game.getTimeOfGame()});
+			board.matrix[data.x][data.y].permaflag = true;
+			
 			//freeze em for 3 seconds
 			setTimeout(function(){
 				player.frozen = false;
 				player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: 11});
 			}, 3000);
-		} else if(board.matrix[data.x][data.y].flag) {
-			return;
 		} else {
 			var signal = board.floodfill(data.x, data.y);
 			

@@ -1,8 +1,15 @@
-var express = require('express');
-var http    = require('http');
-var path    = require('path');
-var io      = require('socket.io');
-var app     = express();
+var express        = require('express');
+var expressSession = require('express-session');
+var morgan         = require('morgan');
+var bodyParser     = require('body-parser');
+var methodOverride = require('method-override');
+var serveStatic    = require('serve-static');
+var cookieParser   = require('cookie-parser');
+var sharedSession  = require("express-socket.io-session")
+var http           = require('http');
+var path           = require('path');
+var io             = require('socket.io');
+var app            = express();
 
 var PORT = process.env.PORT || 3000;
 var HOST = process.env.HOST || 'localhost';
@@ -10,32 +17,26 @@ var HOST = process.env.HOST || 'localhost';
 var EXPRESS_SID_KEY = 'express.sid';
 var COOKIE_SECRET   = 'minesman';
 
-var cookieParser = express.cookieParser(COOKIE_SECRET);
-var sessionStore = new express.session.MemoryStore();
+var cookieParser = cookieParser(COOKIE_SECRET);
+var sessionStore = new expressSession.MemoryStore();
 
-// Configure Express app with :
-// * Cookie Parser created above
-// * Configure Session Store
-app.configure(function () {
-    app.use(cookieParser);
-    app.use(express.session({
-        store: sessionStore,
-        cookie: { 
-            httpOnly: true
-        },
-        key: EXPRESS_SID_KEY
-    }));
-    app.set('views', __dirname + '/views');
-	app.set('view engine', 'ejs');
-	app.use(express.logger('dev'));
-	app.use(express.bodyParser());
-	app.use(express.methodOverride());
-	app.use(app.router);
-	app.use(express.static(path.join(__dirname, 'public')));
-});
+app.use(cookieParser);
+app.use(expressSession({
+    store: sessionStore,
+    cookie: { 
+        httpOnly: true
+    },
+    key: EXPRESS_SID_KEY
+}));
+app.set('views', __dirname + '/views');
+app.set('view engine', 'ejs');
+app.use(morgan('dev'));
+app.use(bodyParser());
+app.use(methodOverride());
+app.use(serveStatic(path.join(__dirname, 'public')));
 
 var server = http.createServer(app);
-var io = require('socket.io').listen(server);
+var io = require('socket.io')(server);
 
 //BEGIN MINES STUFF
 var GameRouter = require('./lib/GameRouter.js');
@@ -51,6 +52,10 @@ app.get('/', function(req,res){
 var gr = new GameRouter();
 
 //SOCKET STUFF BELOW HERE
+io.use(sharedSession(expressSession, {
+    autoSave:true
+}));
+
 io.set('authorization', function (data, callback) {    
     if(!data.headers.cookie) {
         return callback('No cookie transmitted.', false);

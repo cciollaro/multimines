@@ -1,4 +1,6 @@
-var express        = require('express');
+var app            = require('express')();
+var server         = require('http').Server(app);
+var io             = require('socket.io')(server);
 var expressSession = require('express-session');
 var morgan         = require('morgan');
 var bodyParser     = require('body-parser');
@@ -6,10 +8,9 @@ var methodOverride = require('method-override');
 var serveStatic    = require('serve-static');
 var cookieParser   = require('cookie-parser');
 var sharedSession  = require("express-socket.io-session")
-var http           = require('http');
 var path           = require('path');
-var io             = require('socket.io');
-var app            = express();
+
+var pid_count = 0;
 
 var PORT = process.env.PORT || 3000;
 var HOST = process.env.HOST || 'localhost';
@@ -23,7 +24,7 @@ var sessionStore = new expressSession.MemoryStore();
 app.use(cookieParser);
 app.use(expressSession({
     store: sessionStore,
-    cookie: { 
+    cookie: {
         httpOnly: true
     },
     key: EXPRESS_SID_KEY
@@ -34,9 +35,6 @@ app.use(morgan('dev'));
 app.use(bodyParser());
 app.use(methodOverride());
 app.use(serveStatic(path.join(__dirname, 'public')));
-
-var server = http.createServer(app);
-var io = require('socket.io')(server);
 
 //BEGIN MINES STUFF
 var GameRouter = require('./lib/GameRouter.js');
@@ -52,15 +50,15 @@ app.get('/', function(req,res){
 var gr = new GameRouter();
 
 //SOCKET STUFF BELOW HERE
-io.use(sharedSession(expressSession, {
-    autoSave:true
-}));
+// io.use(sharedSession(expressSession, {
+//     autoSave:true
+// }));
 
-io.set('authorization', function (data, callback) {    
+io.set('authorization', function (data, callback) {
     if(!data.headers.cookie) {
         return callback('No cookie transmitted.', false);
     }
-    
+
     cookieParser(data, {}, function(parseErr) {
         if(parseErr) { return callback('Error parsing cookies.', false); }
         var sidCookie = (data.secureCookies && data.secureCookies[EXPRESS_SID_KEY]) ||
@@ -76,37 +74,40 @@ io.set('authorization', function (data, callback) {
         });
     });
 });
+io.on('connection', function(socket){
+  console.log("got connect event");
 
-io.sockets.on('connection', function(socket){
-	var player = new Player(socket.handshake.session.playerId, socket);
-    
+	var player = new Player(pid_count, socket);
+  pid_count ++;
+
     socket.on('joinGame', function(data){
+      console.log("got join game event");
 		var game = gr.findGame(data.difficulty);
 		game.addPlayer(player);
-		
+
 		player.socket.emit('initGame', {html: game.html(), id: player.index});
 		player.broadcast('playerJoined', {id: player.index});
-		
+
 		if(game.isFull()){
 			setTimeout(function(){
-				game.started = true;
-				player.everyone('start', {});			
+				game.start();
+				player.everyone('start', {});
 			}, 1000);
 		}
 	});
-    
+
 	socket.on('reveal', function(data){
         if(player.frozen || !player.game.started){
 			return;
 		}
-		
-        var game = player.game;
-        
+
+    var game = player.game;
+
 		if(game.firstClick){
 			game.initBoards(data);
 			game.firstClick = false;
 		}
-		
+
 		var board = player.board;
 		if(board.matrix[data.x][data.y].flag || board.matrix[data.x][data.y].permaflag) {
 			return;
@@ -114,7 +115,7 @@ io.sockets.on('connection', function(socket){
 			player.frozen = true;
             player.everyone('updateBoard', {board: player.index, x: data.x, y: data.y, display: -1, time: player.game.getTimeOfGame()});
 			board.matrix[data.x][data.y].permaflag = true;
-			
+
 			//freeze em for 3 seconds
 			setTimeout(function(){
 				player.frozen = false;
@@ -122,29 +123,29 @@ io.sockets.on('connection', function(socket){
 			}, 3000);
 		} else {
 			var signal = board.floodfill(data.x, data.y);
-			
+
 			for(var i = 0; i < signal.length; i++){
 				signal[i].board = player.index;
 			}
-			
+
 			player.everyone('updateBoard', signal);
 		}
 	});
-	
+
 	socket.on('flag', function(data){
 		 if(player.frozen || !player.game.started){
 			return;
 		}
-              
+
         var game = player.game;
-		
+
 		if(game.firstClick){
 			game.initBoards(data);
 			game.firstClick = false;
 		}
-		
+
 		var board = player.board;
-		
+
 		if(board.matrix[data.x][data.y].flagged){
 			board.matrix[data.x][data.y].flagged = false;
 			var display = 9; //unflag
